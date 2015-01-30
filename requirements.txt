@@ -1,0 +1,4 @@
+bottle
+python-daemon
+pandas
+scikit-learn

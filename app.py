@@ -1,6 +1,8 @@
 import pickle
+import daemon
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
+from bottle import route, run, template
 
 origin = ('chinese', 'japanese')
 
@@ -14,11 +16,11 @@ class LengthExtractor(BaseEstimator, TransformerMixin):
 with open('clf.pkl', 'rb') as f:
     clf = pickle.load(f)
 
-while True:
-    try:
-        test_name = input('enter a name: ')
-        print(origin[clf.predict([test_name])])
-    except KeyboardInterrupt:
-        print('\n')
-        break
+@route('/:name')
+def index(name='unknown'):
+    return template('<b>{{name}} is {{origin}}</b>', name=name, origin=origin[clf.predict([name])])
+
+log = open('access_log', 'a')
+with daemon.DaemonContext(stderr=log):
+    run(host='localhost', port=80)
 
