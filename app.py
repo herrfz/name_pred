@@ -13,6 +13,13 @@ class LengthExtractor(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None, **fit_params):
         return self
 
+class EndsWithConsonant(BaseEstimator, TransformerMixin):
+    def transform(self, X, **transform_params):
+        return DataFrame(X).applymap(lambda x: int(x[-1] not in ['a', 'i', 'u', 'e', 'o']))
+    
+    def fit(self, X, y=None, **fit_params):
+        return self
+
 with open('clf.pkl', 'rb') as f:
     clf = pickle.load(f)
 
