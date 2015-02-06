@@ -1,8 +1,8 @@
 import pickle
-import daemon
+import asyncio
+from aiohttp import web
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
-from bottle import route, run, template
 
 origin = ('chinese', 'japanese')
 
@@ -23,11 +23,26 @@ class EndsWithConsonant(BaseEstimator, TransformerMixin):
 with open('clf.pkl', 'rb') as f:
     clf = pickle.load(f)
 
-@route('/:name')
-def index(name='unknown'):
-    return template('<b>{{name}} is {{origin}}</b>', name=name, origin=origin[clf.predict([name])])
+@asyncio.coroutine
+def handle(request):
+    name = request.match_info.get('name', 'anon')
+    return web.Response(body='<b>{name} is {origin}</b>'.format(name=name, origin=origin[clf.predict([name])]).encode('utf-8'))
 
-log = open('access_log', 'a')
-with daemon.DaemonContext(stderr=log):
-    run(host='localhost', port=80)
+@asyncio.coroutine
+def init(loop):
+    app = web.Application(loop=loop)
+    app.router.add_route('GET', '/{name}', handle)
+
+    srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 80)
+    print('server started at http://127.0.0.1:80')
+    return srv
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(init(loop))
+try:
+    loop.run_forever()
+except KeyboardInterrupt:
+    while loop.is_running():
+        continue
+    loop.close()
 
